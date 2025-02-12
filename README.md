@@ -7,5 +7,5 @@ This way, obstacles shadows are cast. <br>
 Each ray is defined as a struct composed of a 2D Starting Point and an angle expressed in radiant. <br>
 Circle light sources emit ray in every direction.  <br>
 Since rays are manually placed and drawn, they are finite in number so this is obviously an approximation. <br>
-By moving the mouse around and pressing the right button, you can move the light source(s) and the emitted rays will change.
+By moving the mouse around and pressing the right button, you can move the light source(s) and the emitted rays will change. <br> <br>
 ![alt text](image.png)
