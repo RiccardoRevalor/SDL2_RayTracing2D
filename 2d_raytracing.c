@@ -7,9 +7,18 @@
 #define WINDOW_HEIGHT 900
 #define WINDOW_WIDTH 1600
 
+//Circle0 default characteristics
+#define CIRCLE0_XS 200
+#define CIRCLE0_YS 200
+#define CIRCLE0_RS  20
+
+
 //colors
 #define WHITE 0xffffffff
+#define BKG 0x000000
 
+//Frequence to update screen
+#define FPS 60
 
 //structs
 
@@ -49,16 +58,58 @@ int main(int argc, char* argv[]) {
     SDL_FillRect(surface, &rect, WHITE);
     */
     
-    Circle circle0 = {200, 200, 20};
-    drawCircle(surface, circle0, WHITE);
+    int redraw = 1;
+    int delayTime = 1 / FPS; //1 sec / 60 FPS = ca 17 ms
+    SDL_Event event;
+
+
+    Circle circle0 = {CIRCLE0_XS, CIRCLE0_YS, CIRCLE0_RS};
+
+
+    while (redraw){
+    
+
+        //read user triggered events
+        while(SDL_PollEvent(&event)){
+            //events written into the event variable
+            if (event.type == SDL_QUIT){
+                //SDL_QUIT is triggered when users closes the app window
+                redraw = 0;
+                break;
+            }
+
+            if (event.type == SDL_MOUSEMOTION){
+                //SDL_MOUSEMOTION triggered when the users moves the mouse
+
+                //if the right mouse button is clicked, redraw the circle at (mouseX, mouseY)
+                if (event.motion.state){
+                    Sint32 mouseX = event.motion.x;
+                    Sint32 mouseY = event.motion.y;
+
+                    circle0.centerX = (float) mouseX;
+                    circle0.centerY = (float) mouseY;
+                }
+            }
+        }
+
+
+        //redraw objects at each frame
+        SDL_FillRect(surface, NULL, BKG);    //clean the whole screen
+        drawCircle(surface, circle0, WHITE);
+
+
+        //aggiorna la window
+        SDL_UpdateWindowSurface(window);
+
+        //FPS
+        SDL_Delay(delayTime);
+    
+    }
     
     
     
     
     
-    //aggiorna la window
-    SDL_UpdateWindowSurface(window);
-    SDL_Delay(5000);
 
     return 0;
 }
