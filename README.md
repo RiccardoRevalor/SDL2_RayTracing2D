@@ -1,7 +1,7 @@
 # C, SLD2 RayTracing 2D Attempt
-## Libraries used: SDL2.h, math.h
+Libraries used: SDL2.h, math.h
 
-## Main algorithm used: RayCasting algorith
+## Main algorithm used: RayCasting algorithm
 I draw all the rays from the light source and compute their paths, it they encounter an obstacle or exit from the screen, their path stops. <br>
 This way, obstacles shadows are draw. <br>
 Each ray is defined as a struct composed of a 2D Starting Point and an angle expressed in radiant. <br>
