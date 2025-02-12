@@ -8,8 +8,12 @@
 #define USE_GPU 1
 
 //window size
-#define WINDOW_HEIGHT 900
-#define WINDOW_WIDTH 1600
+#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH 900
+
+//Rays settings
+#define CIRCLE0_RAYS_COUNT  2000         //Number of rays casted (the higher the better, but it's more hw consuming)
+#define CIRCLE0_RAYS_ANGLE_COVERED 2*M_PI  //360: Rays are casted in all directions. The direction angle starts at 0 degrees
 
 /*
 Objects Hierarchy
@@ -17,6 +21,7 @@ Objects Hierarchy
 + Circle1 -> Sample Light absorbing object
 
 */
+#define MAX_OBJECTS 10
 
 //Circle0 default characteristics
 #define CIRCLE0_XS 200
@@ -24,7 +29,7 @@ Objects Hierarchy
 #define CIRCLE0_RS  20
 
 //Circle1 default characteristics
-#define CIRCLE1_XS  1200
+#define CIRCLE1_XS  450
 #define CIRCLE1_YS  450
 #define CIRCLE1_RS 100
 
@@ -37,7 +42,10 @@ SDL_Color BKG = (SDL_Color) {0, 0, 0, 255};
 #define FPS 60
 
 //structs
-
+typedef struct {
+    float startX, startY;           //ray start coordinates
+    float m;                        //ray angle in radiant
+} Ray;
 
 typedef struct {
     float centerX, centerY;         //Circle center
@@ -46,10 +54,20 @@ typedef struct {
 
 
 
-//Funzioni custom
+/* Funzioni custom */
+
+//Gfx functions
 void drawCircle(SDL_Renderer* renderer, Circle circle, SDL_Color color);
+
+//Basic Geometry functions
 float distanceSquared(float aX, float aY, float bX, float bY);
 int belongsToCircle(Circle circle, float aX, float aY);
+
+//RayCasting functions
+void genRays_Circle(Circle sourceCircle, Ray *raysArray, int raysCount, int angleDirections);
+void castRays_CircleToCircles(SDL_Renderer* renderer, SDL_Color rayColor, Circle sourceCircle, Ray *raysArray, int raysCount, Circle* otherObjects, int numOtherObjects);
+
+
 
 int main(int argc, char* argv[]) {
     //inizializzazione di SDL
@@ -67,7 +85,7 @@ int main(int argc, char* argv[]) {
     }
 
     //Crea Renderer
-    #ifdef USE_GPU
+    #if USE_GPU
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     #else
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
@@ -97,6 +115,12 @@ int main(int argc, char* argv[]) {
     Circle circle0 = {CIRCLE0_XS, CIRCLE0_YS, CIRCLE0_RS};
     Circle circle1 = {CIRCLE1_XS, CIRCLE1_YS, CIRCLE1_RS};
 
+    //Rays arrays for the light sources
+    Ray raysCircle0[CIRCLE0_RAYS_COUNT];    //uninitialized
+
+
+
+
     while (redraw){
     
 
@@ -124,10 +148,22 @@ int main(int argc, char* argv[]) {
         }
 
 
-        //redraw objects at each frame 
+        //clear window to redraw objects at each frame 
         SDL_SetRenderDrawColor(renderer, BKG.r, BKG.g, BKG.b, BKG.a); //clean the whole screen       
         SDL_RenderClear(renderer);
         
+        //draw Rays
+        //it's better to draw the rays first since in case of cicles they originated at its center
+
+        //set the array with other objects in the space
+        Circle otherCircles[MAX_OBJECTS] = {circle1};
+
+        //Generate Rays starting points and angles
+        genRays_Circle(circle0, raysCircle0, CIRCLE0_RAYS_COUNT, CIRCLE0_RAYS_ANGLE_COVERED);
+
+        //trace rays
+        castRays_CircleToCircles(renderer, WHITE, circle0, raysCircle0,CIRCLE0_RAYS_COUNT,otherCircles, 1);
+
         //draw objects
         drawCircle(renderer, circle0, WHITE);
         drawCircle(renderer, circle1, WHITE);
@@ -191,5 +227,76 @@ int belongsToCircle(Circle circle, float aX, float aY){
     if (distanceSquared(aX, aY, circle.centerX, circle.centerY) <= radSquared) return 1;
 
     return 0;
+
+}
+
+void genRays_Circle(Circle sourceCircle, Ray *raysArray, int raysCount, int angleDirections){
+    int i;
+    float baseAngle = (float)angleDirections / (float)raysCount;
+    for (i = 0; i < raysCount; i++){
+        Ray r = {sourceCircle.centerX, sourceCircle.centerY, ((float)i)*baseAngle};
+        raysArray[i] = r;
+        //printf("ray: %f\n", raysArray[i].m);
+    }
+}
+
+void castRays_CircleToCircles(SDL_Renderer* renderer, SDL_Color rayColor, Circle sourceCircle, Ray *raysArray, int raysCount, Circle* otherObjects, int numOtherObjects){
+    int i, j;
+    int endScreen;
+    int collision;
+    int step;
+    float nextX, nextY, lastX, lastY;
+
+    //Set rayColor
+    SDL_SetRenderDrawColor(renderer, rayColor.r, rayColor.g, rayColor.b, rayColor.a);
+
+    for (i = 0; i < raysCount; i++){
+        Ray r = raysArray[i];
+
+        //Calculate actual ray end coordinates
+        //These are either end of screen or less if we have a collision between the ray and other objects
+
+        collision = 0;
+        endScreen = 0;
+        step = 1;
+        lastX = r.startX;
+        lastY = r.startY;
+
+        while (!collision && !endScreen){
+            //Calculate next coordinates of the next pixel composing the ray
+            nextX = lastX + step*cos(r.m);
+            nextY = lastY + step*sin(r.m);
+
+            //check end of screen for the ray
+            if (nextX < 0 || nextX > WINDOW_WIDTH || nextY < 0 || nextY > WINDOW_HEIGHT) {
+                endScreen = 1;
+            } 
+
+            //check collision with other circles
+
+            for (j = 0; j < numOtherObjects; j++){
+                if (belongsToCircle(otherObjects[j], nextX, nextY)){
+                    collision = 1;
+                    break;  //no sense searching for multiple collisions since tha ray is stopped at the first one
+                }
+            }
+
+            ++step;
+
+            //Update lastX and lastY
+            lastX = nextX;
+            lastY = nextY;
+    
+        }
+
+        //Now I know the ray starts at the center of the sourceCircle and stops at (lastX, lastY)
+        //I have to draw it
+        SDL_RenderDrawLine(renderer, 
+            (int)raysArray[i].startX, (int)raysArray[i].startY, 
+            (int)lastX, (int)lastY);
+
+    }
+
+
 
 }
