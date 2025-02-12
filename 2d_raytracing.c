@@ -13,6 +13,7 @@
 
 //Rays settings
 #define CIRCLE0_RAYS_COUNT  2000         //Number of rays casted (the higher the better, but it's more hw consuming)
+#define CIRCLE0_RAYS_OFFSET_COUNT 0.5 * CIRCLE0_RAYS_COUNT
 #define CIRCLE0_RAYS_ANGLE_COVERED 2*M_PI  //360: Rays are casted in all directions. The direction angle starts at 0 degrees
 
 /*
@@ -44,7 +45,7 @@ SDL_Color BKG = (SDL_Color) {0, 0, 0, 255};
 //structs
 typedef struct {
     float startX, startY;           //ray start coordinates
-    float m;                        //ray angle in radiant
+    double m;                        //ray angle in radiant
 } Ray;
 
 typedef struct {
@@ -232,9 +233,9 @@ int belongsToCircle(Circle circle, float aX, float aY){
 
 void genRays_Circle(Circle sourceCircle, Ray *raysArray, int raysCount, int angleDirections){
     int i;
-    float baseAngle = (float)angleDirections / (float)raysCount;
+    double baseAngle = (double)angleDirections / (double)(raysCount - CIRCLE0_RAYS_OFFSET_COUNT);
     for (i = 0; i < raysCount; i++){
-        Ray r = {sourceCircle.centerX, sourceCircle.centerY, ((float)i)*baseAngle};
+        Ray r = {sourceCircle.centerX, sourceCircle.centerY, ((double)i)*baseAngle};
         raysArray[i] = r;
         //printf("ray: %f\n", raysArray[i].m);
     }
