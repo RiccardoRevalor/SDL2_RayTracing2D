@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <math.h>
+#include <immintrin.h>  //for avx2 support
 
 //IMPORTANT: USE GPU OR CPU RENDERING BASED ON YOU HW
 //1 to enable GPU rendering (faster but you have to have properer HW)
@@ -38,6 +39,7 @@ Objects Hierarchy
 //colors
 SDL_Color WHITE = (SDL_Color) {255, 255, 255, 255}; // {R,G,B,A}
 SDL_Color BKG = (SDL_Color) {0, 0, 0, 255};
+SDL_Color YELLOW = (SDL_Color) {255, 195, 0, 255};
 
 //Frequence to update screen
 #define FPS 60
@@ -52,7 +54,6 @@ typedef struct {
     float centerX, centerY;         //Circle center
     float rad;                     //circle radius
 } Circle;
-
 
 
 /* Funzioni custom */
@@ -120,7 +121,7 @@ int main(int argc, char* argv[]) {
     Ray raysCircle0[CIRCLE0_RAYS_COUNT];    //uninitialized
 
 
-
+    SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" );
 
     while (redraw){
     
@@ -142,8 +143,11 @@ int main(int argc, char* argv[]) {
                     Sint32 mouseX = event.motion.x;
                     Sint32 mouseY = event.motion.y;
 
-                    circle0.centerX = (float) mouseX;
-                    circle0.centerY = (float) mouseY;
+                    //check if mouse coordinates are actually inside the window
+                    if (mouseX >= 0 && mouseX <= WINDOW_WIDTH && mouseY >= 0 && mouseY <= WINDOW_HEIGHT) {
+                        circle0.centerX = (float) mouseX;
+                        circle0.centerY = (float) mouseY;
+                    }
                 }
             }
         }
@@ -163,7 +167,7 @@ int main(int argc, char* argv[]) {
         genRays_Circle(circle0, raysCircle0, CIRCLE0_RAYS_COUNT, CIRCLE0_RAYS_ANGLE_COVERED);
 
         //trace rays
-        castRays_CircleToCircles(renderer, WHITE, circle0, raysCircle0,CIRCLE0_RAYS_COUNT,otherCircles, 1);
+        castRays_CircleToCircles(renderer, YELLOW, circle0, raysCircle0,CIRCLE0_RAYS_COUNT,otherCircles, 1);
 
         //draw objects
         drawCircle(renderer, circle0, WHITE);
