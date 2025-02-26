@@ -1,5 +1,5 @@
 # C, SDL2 RayTracing 2D Attempt
-Libraries used: SDL2.h, math.h
+Libraries used: SDL2.h (version 2.32.0, download here: https://www.libsdl.org/release/), math.h
 
 ## Main algorithm used: RayCasting algorithm
 I draw all the rays from the light source and compute their paths, it they encounter an obstacle or exit from the screen, their path stops. <br>
